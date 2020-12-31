@@ -1,16 +1,46 @@
 import re
+import csv
 
 import requests
 from bs4 import BeautifulSoup
 
 stardew_fish_url = 'https://stardewvalleywiki.com/Fish'
+normalization_exclusion_regex = r'.*(Quest|Bundle|Soup|Dinner|gift|Pudding).*'
 blank_line_regex = r'^\s*$'
 
 
 def main():
     print('Retrieving Resources')
     formatted_fish_data = retrieve_fish_item_data_from_wiki()
-    print('\n'.join(formatted_fish_data))
+    parse_chunk_start = 14
+    headers = [x.strip() for x in formatted_fish_data[:parse_chunk_start]]
+    normalized_fish_data = normalize_fish_data(formatted_fish_data)
+    parse_chunk_size = 21
+    for chunk in retrieve_next_data_chunk(normalized_fish_data[parse_chunk_start:], parse_chunk_size):
+        formatted_chunk = format_raw_item_chunk(chunk)
+        print(formatted_chunk)
+
+
+def normalize_fish_data(formatted_fish_data):
+    return [x.strip() for x in formatted_fish_data if not re.search(normalization_exclusion_regex, x)]
+
+
+def format_raw_item_chunk(chunk):
+    formatted_chunk = []
+    formatted_chunk.extend(chunk[:2])
+    formatted_chunk.append(chunk[2:6])
+    formatted_chunk.append(chunk[6:10])
+    formatted_chunk.append(chunk[10:14])
+    formatted_chunk.extend(chunk[14:])
+    return formatted_chunk
+
+
+def retrieve_next_data_chunk(data, chunk_size: int):
+    if len(data) <= chunk_size:
+        yield data
+    else:
+        yield data[:chunk_size]
+        yield from retrieve_next_data_chunk(data[chunk_size:], chunk_size)
 
 
 def retrieve_fish_item_data_from_wiki():
