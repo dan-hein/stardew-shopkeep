@@ -6,6 +6,7 @@
 import time
 
 from bs4 import BeautifulSoup
+from os import path
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -17,10 +18,22 @@ headers = {
 
 def main():
     print('Retrieving Resources, Only Better.... sigh')
-    raw_html = request_raw_html_from_wiki()
+    if path.exists(r'resources/fish_wiki.html'):
+        with open(r'resources/fish_wiki.html', 'r', encoding='utf-8') as html_cache:
+            raw_html = html_cache.read()
+    else:
+        raw_html = request_raw_html_from_wiki()
+        with open(r'resources/fish_wiki.html', 'w', encoding='utf-8') as html_cache:
+            html_cache.write(raw_html)
     wiki_items_table = find_items_table_in_html(raw_html)
-    print(f'Headers: {wiki_items_table.thead}')
-    # print(wiki_items_table)
+    thead = wiki_items_table.thead
+
+    table_headers = [f'{h.string}'.strip() for h in thead.tr.find_all('th')]
+    print(f'Headers: {table_headers}')
+
+    #table_contents = [f'{i.string}'.strip() for i in wiki_items_table.tbody.tr.find_all('td')]
+    table_contents = wiki_items_table.tbody
+    print(f'Fish Entries: {table_contents}')
 
 
 def find_items_table_in_html(raw_html):
